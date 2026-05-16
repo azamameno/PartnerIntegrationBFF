@@ -1,10 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using PartnerIntegrationBFF.Interfaces;
-using PartnerIntegrationBFF.Models;
 using RabbitMQ.Client;
 
-namespace PartnerIntegrationBFF.Infrastructure;
+namespace PartnerIntegrationBFF.Infrastructure.Messaging;
 
 public class RabbitMqMessageQueueService(
     IConfiguration configuration,
@@ -28,18 +26,11 @@ public class RabbitMqMessageQueueService(
             await this._connection.CloseAsync(cancellationToken);
     }
 
-    public async Task PublishTransactionAsync(PartnerTransactionRequest request) {
+    public async Task PublishAsync<T>(T message) {
         var queueName = configuration["RabbitMQ:QueueName"]!;
         await using var channel = await this._connection!.CreateChannelAsync();
-        await channel.QueueDeclareAsync(
-            queueName,
-            true,
-            false,
-            false);
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request));
-        await channel.BasicPublishAsync(
-            "",
-            queueName,
-            body);
+        await channel.QueueDeclareAsync(queueName, true, false, false);
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+        await channel.BasicPublishAsync("", queueName, body);
     }
 }

@@ -17,11 +17,10 @@ Partner Client
 │  HmacAuthenticationHandler          │
 │    → verify HMAC-SHA256 signature   │
 │                                     │
-│  PartnerController                  │
+│  CreateTransactionEndpoint          │
 │    → FluentValidation (input)       │
-│    → PartnerService                 │
-│         → IPartnerClient (Refit)    │  ──► PartnerExternalApi
-│         → IMessageQueueService      │  ──► RabbitMQ
+│    → IPartnerClient (Refit)         │  ──► PartnerExternalApi
+│    → IMessageQueueService           │  ──► RabbitMQ
 └─────────────────────────────────────┘
 ```
 
@@ -68,13 +67,15 @@ Transactions are accepted and **queued immediately** rather than processed synch
 
 `RabbitMqMessageQueueService` is registered as both `IHostedService` (manages the connection lifecycle) and `IMessageQueueService` (publishing interface), using a single shared instance via a double-registration pattern.
 
-### 5. FluentValidation
+### 5. Vertical Slice Architecture with Minimal APIs
 
-Input validation is kept in the HTTP layer (controller) rather than leaking into the service layer. FluentValidation provides a declarative, testable validation model with clear separation from business logic. The `PartnerTransactionValidator` is auto-registered via assembly scanning.
+Each feature lives in its own folder containing the endpoint, request model, and validator — all co-located. This avoids the overhead of a separate service layer for straightforward orchestration: validate → verify → queue. Endpoint handler methods are `static`, making them directly unit-testable without requiring an HTTP host.
 
-### 6. Service Layer + Interface Segregation
+The `IEndpoint` interface + `MapEndpoints` extension auto-discovers and registers all endpoints via reflection, keeping `Program.cs` clean.
 
-`IPartnerService` abstracts the orchestration logic (verify partner → queue transaction) from the controller, making both independently testable with mocks. The controller only knows about `IValidator` and `IPartnerService` — it has no knowledge of Refit or RabbitMQ.
+### 6. FluentValidation
+
+Input validation is declared in the feature folder alongside the endpoint. FluentValidation provides a declarative, testable validation model with clear separation from business logic. Validators are auto-registered via assembly scanning.
 
 ### 7. Global Exception Handler Middleware
 
@@ -86,26 +87,30 @@ Unhandled exceptions are caught centrally in `GlobalExceptionHandlerMiddleware`,
 
 ```
 PartnerIntegrationBFF/
-├── Controllers/
-│   └── PartnerController.cs          # HTTP entry point
+├── Features/
+│   ├── Partners/
+│   │   └── CreateTransaction/
+│   │       ├── CreateTransactionEndpoint.cs   # Minimal API handler
+│   │       ├── CreateTransactionRequest.cs    # Request model
+│   │       └── CreateTransactionValidator.cs  # FluentValidation rules
+ HMAC signature
 ├── Infrastructure/
-│   └── HmacAuthenticationHandler.cs  # HMAC-SHA256 auth handler
-|   └── RabbitMqMessageQueueService.cs
-├── Interfaces/
-│   ├── IPartnerClient.cs             # Refit external API client
-│   ├── IPartnerService.cs            # Business orchestration contract
-│   └── IMessageQueueService.cs       # Queue abstraction
-├── Middleware/
-│   └── GlobalExceptionHandlerMiddleware.cs
-├── Models/
-│   └── PartnerTransactionRequest.cs
-├── Services/
-│   ├── PartnerService.cs             # Orchestration: verify → queue
-├── Validators/
-│   └── PartnerTransactionValidator.cs
+│   ├── Auth/
+│   │   └── HmacAuthenticationHandler.cs      # HMAC-SHA256 auth handler
+│   └── Messaging/
+│       ├── IMessageQueueService.cs            # Queue abstraction
+│       └── RabbitMqMessageQueueService.cs     # RabbitMQ implementation
+├── Shared/
+│   ├── Contracts/
+│   │   └── IPartnerClient.cs                 # Refit external API client
+│   ├── Extensions/
+│   │   └── EndpointExtensions.cs             # IEndpoint auto-discovery
+│   └── Middleware/
+│       └── GlobalExceptionHandlerMiddleware.cs
+├── Program.cs
 
-PartnerExternalApi/                   # Simulated partner verification API
-PartnerIntegrationBFF.Tests/          # xUnit unit tests
+PartnerExternalApi/                            # Simulated partner verification API
+PartnerIntegrationBFF.Tests/                   # xUnit unit tests
 docker-compose.yml
 ```
 
@@ -225,8 +230,7 @@ dotnet test
 | Suite | Tests | What's covered |
 |-------|-------|----------------|
 | `HmacAuthHandlerSignatureTests` | 9 | HMAC auth: happy path, tampered body, wrong secret, missing headers, unknown partner |
-| `PartnerControllerTests` | 3 | Controller: validation failure → 400, service fail → 502, success → 202 |
-| `PartnerServiceTests` | 4 | Service: partner not verified, client throws, queue throws, success |
-| `PartnerTransactionValidatorTests` | 9 | Validation rules for all fields |
+| `CreateTransactionEndpointTests` | 5 | Endpoint handler: validation failure → 400, partner not verified → 502, client throws, queue throws, success → 202 |
+| `CreateTransactionValidatorTests` | 9 | Validation rules for all fields |
 
 All tests use **xUnit** + **Moq** with no external dependencies (in-memory configuration, `DefaultHttpContext`).

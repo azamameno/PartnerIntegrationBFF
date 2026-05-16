@@ -1,7 +1,7 @@
 using System.Text.Json;
 using FluentValidation;
 
-namespace PartnerIntegrationBFF.Middleware;
+namespace PartnerIntegrationBFF.Shared.Middleware;
 
 public class GlobalExceptionHandlerMiddleware(ILogger<GlobalExceptionHandlerMiddleware> logger) : IMiddleware {
     public async Task InvokeAsync(HttpContext context, RequestDelegate next) {
@@ -40,13 +40,7 @@ public class GlobalExceptionHandlerMiddleware(ILogger<GlobalExceptionHandlerMidd
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
 
-        var response = new {
-            success = false,
-            statusCode,
-            message,
-            errors
-        };
-
+        var response = new { success = false, statusCode, message, errors };
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));
     }
 }

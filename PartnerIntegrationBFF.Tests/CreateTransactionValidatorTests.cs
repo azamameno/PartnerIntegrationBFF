@@ -1,21 +1,18 @@
 using FluentValidation.TestHelper;
-using PartnerIntegrationBFF.Models;
-using PartnerIntegrationBFF.Validators;
+using PartnerIntegrationBFF.Features.Partners.CreateTransaction;
 
 namespace PartnerIntegrationBFF.Tests;
 
-public class PartnerTransactionValidatorTests {
-    private readonly PartnerTransactionValidator _validator = new();
+public class CreateTransactionValidatorTests {
+    private readonly CreateTransactionValidator _validator = new();
 
-    private static PartnerTransactionRequest ValidRequest() {
-        return new PartnerTransactionRequest {
-            PartnerId = "partner-01",
-            TransactionReference = "ref-001",
-            Amount = 250m,
-            Currency = "USD",
-            Timestamp = DateTime.UtcNow
-        };
-    }
+    private static CreateTransactionRequest ValidRequest() => new() {
+        PartnerId = "partner-01",
+        TransactionReference = "ref-001",
+        Amount = 250m,
+        Currency = "USD",
+        Timestamp = DateTime.UtcNow
+    };
 
     [Fact]
     public void Amount_Zero_ShouldFail() {

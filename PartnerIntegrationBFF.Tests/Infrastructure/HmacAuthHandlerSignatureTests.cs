@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using PartnerIntegrationBFF.Infrastructure;
+using PartnerIntegrationBFF.Infrastructure.Auth;
 
 namespace PartnerIntegrationBFF.Tests.Infrastructure;
 
@@ -52,8 +52,6 @@ public class HmacAuthHandlerSignatureTests {
         return await handler.AuthenticateAsync();
     }
 
-    // --- Happy path ---
-
     [Fact]
     public async Task ValidRequest_ReturnsSuccess_WithPartnerIdClaim() {
         var sig = ComputeSignature(ValidSecret, ValidBody, ValidTimestamp);
@@ -64,8 +62,6 @@ public class HmacAuthHandlerSignatureTests {
         Assert.True(result.Succeeded);
         Assert.Equal(ValidPartnerId, result.Principal?.FindFirst("PartnerId")?.Value);
     }
-
-    // --- Header validation ---
 
     [Fact]
     public async Task MissingSignature_ReturnsNoResult() {
@@ -85,8 +81,6 @@ public class HmacAuthHandlerSignatureTests {
         Assert.False(result.Succeeded);
         Assert.Contains("X-Timestamp", result.Failure!.Message);
     }
-
-    // --- Body validation ---
 
     [Fact]
     public async Task InvalidJsonBody_ReturnsFail() {
@@ -110,8 +104,6 @@ public class HmacAuthHandlerSignatureTests {
         Assert.Contains("partnerId", result.Failure!.Message);
     }
 
-    // --- Partner / secret validation ---
-
     [Fact]
     public async Task UnknownPartner_ReturnsFail() {
         var result = await Run(
@@ -121,8 +113,6 @@ public class HmacAuthHandlerSignatureTests {
         Assert.False(result.Succeeded);
         Assert.Contains("Unknown partner", result.Failure!.Message);
     }
-
-    // --- HMAC integrity ---
 
     [Fact]
     public async Task WrongSignature_ReturnsFail() {
@@ -136,10 +126,8 @@ public class HmacAuthHandlerSignatureTests {
 
     [Fact]
     public async Task TamperedBody_ReturnsFail() {
-        // Sign original body, but send modified body
-        var originalBody = ValidBody;
         var tamperedBody = ValidBody.Replace("100", "99999");
-        var sig = ComputeSignature(ValidSecret, originalBody, ValidTimestamp);
+        var sig = ComputeSignature(ValidSecret, ValidBody, ValidTimestamp);
 
         var result = await Run(
             BuildHandler(new() { [ValidPartnerId] = ValidSecret }),

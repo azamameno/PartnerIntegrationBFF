@@ -1,6 +1,6 @@
-namespace PartnerIntegrationBFF.Models;
+namespace PartnerIntegrationBFF.Features.Partners.CreateTransaction;
 
-public class PartnerTransactionRequest {
+public class CreateTransactionRequest {
     public string PartnerId { get; set; } = string.Empty;
     public string TransactionReference { get; set; } = string.Empty;
     public decimal Amount { get; set; }

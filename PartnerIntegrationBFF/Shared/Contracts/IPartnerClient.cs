@@ -1,6 +1,6 @@
 using Refit;
 
-namespace PartnerIntegrationBFF.Interfaces;
+namespace PartnerIntegrationBFF.Shared.Contracts;
 
 public interface IPartnerClient {
     [Get("/api/v1/partner/{partnerId}/verify")]

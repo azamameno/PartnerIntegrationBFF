@@ -6,7 +6,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
-namespace PartnerIntegrationBFF.Infrastructure;
+namespace PartnerIntegrationBFF.Infrastructure.Auth;
 
 public class HmacAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
