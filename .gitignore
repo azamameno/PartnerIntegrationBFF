@@ -1,0 +1,19 @@
+# .NET build artifacts
+bin/
+obj/
+*.user
+
+# Dev secrets - DO NOT COMMIT
+appsettings.Development.json
+*.env
+.env
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.rsuser
+
+# OS
+.DS_Store
+Thumbs.db
