@@ -83,6 +83,23 @@ Unhandled exceptions are caught centrally in `GlobalExceptionHandlerMiddleware`,
 
 ---
 
+## Why Vertical Slice Architecture?
+
+Instead of organizing code by technical layers (Controllers / Services / Repositories), VSA organizes code **by feature**. Every concern for a given use case lives in one folder — handler, request model, validator, and any feature-specific logic — making the codebase easier to navigate and evolve.
+
+| Reason | What it means in practice |
+|--------|--------------------------|
+| **Feature cohesion** | All code for a feature lives in one place. Adding or changing a feature touches one folder, not multiple layers. |
+| **No shotgun surgery** | A change to one feature doesn't ripple across shared service classes that other features also depend on. |
+| **Team autonomy** | Developers can own slices independently with minimal merge conflicts — natural fit for parallel workstreams. |
+| **Simpler testing** | Each slice can be tested end-to-end in isolation without mocking a chain of injected services. |
+| **YAGNI-friendly** | Simple features get simple implementations. No obligation to create a full layer stack for a two-line operation. |
+| **No anemic domain model** | Business logic stays inside the slice where it has context, instead of being diluted across generic service classes. |
+| **Microservice-ready** | Clear feature boundaries make it straightforward to extract a slice into its own service later without major refactoring. |
+| **Natural CQRS fit** | Pairs cleanly with the Command/Query pattern (e.g. MediatR): one request type → one handler → one response. |
+
+---
+
 ## Project Structure
 
 ```
